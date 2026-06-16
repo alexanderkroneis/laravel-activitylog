@@ -541,3 +541,69 @@ it('runs beforeLogging callbacks for model event activities', function () {
 
     expect($this->getLastActivity()->getProperty('hook_ran'))->toBeTrue();
 });
+
+it('logs when using a backed enum as log name', function () {
+
+    $activity = activity(StringBackedEnum::Published)->log('Test');
+
+    expect($activity->log_name)->toBe(StringBackedEnum::Published->value);
+});
+
+it('logs when using a backed enum as log name and returns enum when enum is configured as default', function () {
+    config()->set('activitylog.default_log_enum', StringBackedEnum::class);
+
+    $activity = activity(StringBackedEnum::Published)->log('Test');
+
+    expect($activity->log_name)->toBe(StringBackedEnum::Published);
+});
+
+it('does not raise a deprecation when reading log_name without a configured enum', function () {
+    config()->set('activitylog.default_log_enum', null);
+
+    set_error_handler(function (int $errno, string $message): bool {
+        throw new RuntimeException($message);
+    }, E_DEPRECATED);
+
+    try {
+        activity()->log('Test');
+
+        expect($this->getLastActivity()->log_name)->toBe('default');
+    } finally {
+        restore_error_handler();
+    }
+});
+
+it('falls back to the raw string when an int-backed enum is configured and the value does not match', function () {
+    config()->set('activitylog.default_log_enum', IntBackedEnum::class);
+
+    activity()->log('Test');
+
+    // 'default' is not a valid int-backed enum value and must not throw a TypeError.
+    expect($this->getLastActivity()->log_name)->toBe('default');
+});
+
+it('falls back to the raw string when a string-backed value does not match the configured enum', function () {
+    config()->set('activitylog.default_log_enum', StringBackedEnum::class);
+
+    activity('some-other-log')->log('Test');
+
+    expect($this->getLastActivity()->log_name)->toBe('some-other-log');
+});
+
+it('returns the raw string when a non-backed enum is configured', function () {
+    config()->set('activitylog.default_log_enum', NonBackedEnum::class);
+
+    activity(StringBackedEnum::Published)->log('Test');
+
+    expect($this->getLastActivity()->log_name)->toBe(StringBackedEnum::Published->value);
+});
+
+it('can query by log name using a backed enum', function () {
+    activity(StringBackedEnum::Published)->log('Published');
+    activity(StringBackedEnum::Draft)->log('Draft');
+
+    $activities = Activity::inLog(StringBackedEnum::Published)->get();
+
+    expect($activities)->toHaveCount(1)
+        ->and($activities->first()->description)->toBe('Published');
+});

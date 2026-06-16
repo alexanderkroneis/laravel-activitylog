@@ -2,6 +2,7 @@
 
 namespace Spatie\Activitylog\Models;
 
+use BackedEnum;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -9,12 +10,13 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Spatie\Activitylog\Casts\AsBackedEnum;
 use Spatie\Activitylog\Contracts\Activity as ActivityContract;
 use Spatie\Activitylog\Enums\ActivityEvent;
 
 /**
  * @property int $id
- * @property string|null $log_name
+ * @property string|BackedEnum|null $log_name
  * @property string $description
  * @property string|null $subject_type
  * @property int|null $subject_id
@@ -37,6 +39,7 @@ class Activity extends Model implements ActivityContract
         return [
             'attribute_changes' => 'collection',
             'properties' => 'collection',
+            'log_name' => AsBackedEnum::class,
         ];
     }
 
@@ -67,12 +70,17 @@ class Activity extends Model implements ActivityContract
         return Arr::get($this->properties?->toArray() ?? [], $propertyName, $defaultValue);
     }
 
-    /** @param  string|string[]  ...$logNames */
-    public function scopeInLog(Builder $query, string|array ...$logNames): Builder
+    /** @param  BackedEnum|string|array<BackedEnum|string>  ...$logNames */
+    public function scopeInLog(Builder $query, BackedEnum|string|array ...$logNames): Builder
     {
         if (is_array($logNames[0])) {
             $logNames = $logNames[0];
         }
+
+        $logNames = array_map(
+            fn (BackedEnum|string $logName) => $logName instanceof BackedEnum ? $logName->value : $logName,
+            $logNames,
+        );
 
         return $query->whereIn('log_name', $logNames);
     }

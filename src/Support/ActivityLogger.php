@@ -2,6 +2,7 @@
 
 namespace Spatie\Activitylog\Support;
 
+use BackedEnum;
 use Closure;
 use DateTimeInterface;
 use Illuminate\Contracts\Config\Repository;
@@ -129,14 +130,18 @@ class ActivityLogger
         return $this;
     }
 
-    public function useLog(?string $logName): static
+    public function useLog(BackedEnum|string|null $logName): static
     {
+        if ($logName instanceof BackedEnum) {
+            $logName = $logName->value;
+        }
+
         $this->getActivity()->log_name = $logName;
 
         return $this;
     }
 
-    public function inLog(?string $logName): static
+    public function inLog(BackedEnum|string|null $logName): static
     {
         return $this->useLog($logName);
     }
