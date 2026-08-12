@@ -10,13 +10,12 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Spatie\Activitylog\Casts\AsBackedEnum;
 use Spatie\Activitylog\Contracts\Activity as ActivityContract;
 use Spatie\Activitylog\Enums\ActivityEvent;
 
 /**
  * @property int $id
- * @property string|BackedEnum|null $log_name
+ * @property string|null $log_name
  * @property string $description
  * @property string|null $subject_type
  * @property int|null $subject_id
@@ -39,7 +38,6 @@ class Activity extends Model implements ActivityContract
         return [
             'attribute_changes' => 'collection',
             'properties' => 'collection',
-            'log_name' => AsBackedEnum::class,
         ];
     }
 
@@ -77,12 +75,10 @@ class Activity extends Model implements ActivityContract
             $logNames = $logNames[0];
         }
 
-        $logNames = array_map(
+        return $query->whereIn('log_name', array_map(
             fn (BackedEnum|string $logName) => $logName instanceof BackedEnum ? $logName->value : $logName,
             $logNames,
-        );
-
-        return $query->whereIn('log_name', $logNames);
+        ));
     }
 
     public function scopeCausedBy(Builder $query, Model $causer): Builder

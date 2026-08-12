@@ -132,11 +132,7 @@ class ActivityLogger
 
     public function useLog(BackedEnum|string|null $logName): static
     {
-        if ($logName instanceof BackedEnum) {
-            $logName = $logName->value;
-        }
-
-        $this->getActivity()->log_name = $logName;
+        $this->getActivity()->log_name = $logName instanceof BackedEnum ? $logName->value : $logName;
 
         return $this;
     }

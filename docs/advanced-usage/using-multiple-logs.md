@@ -41,8 +41,8 @@ public function getActivitylogOptions(): LogOptions
 
 ## Using a backed enum as log name
 
-Instead of plain strings you can pass a string- or int-backed enum as the log name. The enum's
-`value` is stored in the database:
+Everywhere a log name is accepted, you can also pass a backed enum. Its `value` is what gets stored
+in the `log_name` column.
 
 ```php
 enum LogName: string
@@ -56,22 +56,34 @@ activity(LogName::Orders)->log('hi');
 Activity::all()->last()->log_name; //returns 'orders'
 ```
 
-By default `log_name` is read back as the stored string. If you want it hydrated back into an
-enum, set the enum class in the `default_log_enum` key of the config file:
+This works in `useLog()` and `inLog()` on the logger, and in `useLogName()` on `LogOptions`.
 
 ```php
-// config/activitylog.php
-'default_log_enum' => \App\Enums\LogName::class,
+public function getActivitylogOptions(): LogOptions
+{
+    return LogOptions::defaults()
+        ->useLogName(LogName::Orders);
+}
 ```
+
+Because `log_name` is a string column, it's always read back as a string (an int-backed enum reads
+back as a numeric string). If you want it hydrated into an enum, add the cast on your own activity
+model and register it in the `activity_model` key of the config file:
 
 ```php
-Activity::all()->last()->log_name; //returns LogName::Orders
-```
+use Spatie\Activitylog\Models\Activity as BaseActivity;
 
-> **Note:** `default_log_enum` is global — only one enum can be configured. Any `log_name` that
-> isn't one of that enum's values (for example the `default` log) is returned as a plain string,
-> so `log_name` may be either an enum or a string. Compare against `->value` (or normalize) when
-> you mix enum and non-enum log names.
+class Activity extends BaseActivity
+{
+    protected function casts(): array
+    {
+        return [
+            ...parent::casts(),
+            'log_name' => LogName::class,
+        ];
+    }
+}
+```
 
 ## Retrieving activity
 

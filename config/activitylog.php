@@ -24,12 +24,6 @@ return [
     'default_log_name' => 'default',
 
     /*
-     * If you want to use an enum as log name provider,
-     * you can configure this here.
-     */
-    'default_log_enum' => null,
-
-    /*
      * You can specify an auth driver here that gets user models.
      * If this is null we'll use the current Laravel auth driver.
      */
